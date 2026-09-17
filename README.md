@@ -160,11 +160,6 @@ const test = base.extend({
 });
 ```
 
-A runnable version of this setup lives in this package's source at
-`examples/electron-sample/` (not shipped in the npm tarball), including an MCP
-end-to-end driver (`mcp-e2e.mjs`) that records it through the server's
-`record_test` and `get_bundle_status` tools.
-
 For an **installed** `.app`, pass `executablePath` to the binary inside
 `Contents/MacOS/` and omit `args: ["main.js"]`. Set `recordVideo.size` to
 **16:9 or 9:16** (overlay windows are otherwise a tiny capture on black). Quit
