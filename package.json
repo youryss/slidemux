@@ -1,0 +1,55 @@
+{
+  "name": "@slidemux/playwright",
+  "version": "0.1.7",
+  "description": "Your Playwright tests become your always-current tutorial videos.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://github.com/youryss/slidemux",
+  "repository": "https://github.com/youryss/slidemux",
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "bin": {
+    "slidemux": "./dist/cli.js",
+    "slidemux-mcp": "./dist/mcp.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./reporter": {
+      "types": "./dist/reporter.d.ts",
+      "import": "./dist/reporter.js",
+      "require": "./dist/reporter.js",
+      "default": "./dist/reporter.js"
+    }
+  },
+  "files": [
+    "dist",
+    "skills",
+    "README.md",
+    ".claude-plugin",
+    ".cursor-plugin",
+    ".mcp.json",
+    "mcp.json"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts"
+  },
+  "peerDependencies": {
+    "@playwright/test": "^1.61.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0"
+  }
+}

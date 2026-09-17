@@ -1,0 +1,23 @@
+{
+  "name": "slidemux",
+  "description": "Your Playwright tests become your always-current tutorial videos.",
+  "version": "0.1.7",
+  "author": {
+    "name": "SlideMux"
+  },
+  "homepage": "https://github.com/youryss/slidemux",
+  "repository": "https://github.com/youryss/slidemux",
+  "license": "MIT",
+  "keywords": ["playwright", "video", "mcp", "narration"],
+  "variables": {
+    "type": "object",
+    "properties": {
+      "SLIDEMUX_API_TOKEN": {
+        "type": "string",
+        "title": "SlideMux API token",
+        "description": "Personal access token from your SlideMux account menu. Cloud MCP tools fail without it."
+      }
+    },
+    "required": ["SLIDEMUX_API_TOKEN"]
+  }
+}

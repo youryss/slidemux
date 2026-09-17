@@ -1,0 +1,14 @@
+{
+  "name": "slidemux",
+  "owner": {
+    "name": "SlideMux"
+  },
+  "plugins": [
+    {
+      "name": "slidemux",
+      "source": "./",
+      "version": "0.1.7",
+      "description": "Your Playwright tests become your always-current tutorial videos."
+    }
+  ]
+}

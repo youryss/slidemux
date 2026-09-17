@@ -1,0 +1,31 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Slide Counter</title>
+    <style>
+      body { font-family: system-ui; display: grid; place-items: center; height: 100vh; margin: 0; }
+      #panel { display: none; text-align: center; }
+      #panel.open { display: block; }
+      #count { font-size: 4rem; }
+      button { font-size: 1.2rem; padding: 0.5rem 1.5rem; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <button id="open">Open counter</button>
+      <section id="panel">
+        <p id="count">0</p>
+        <button id="increment">Increment</button>
+      </section>
+    </main>
+    <script>
+      const panel = document.getElementById("panel");
+      const count = document.getElementById("count");
+      document.getElementById("open").addEventListener("click", () => panel.classList.add("open"));
+      document.getElementById("increment").addEventListener("click", () => {
+        count.textContent = String(Number(count.textContent) + 1);
+      });
+    </script>
+  </body>
+</html>

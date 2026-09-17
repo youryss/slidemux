@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "slidemux": {
+      "command": "npx",
+      "args": ["-y", "-p", "@slidemux/playwright@0.1.7", "slidemux-mcp"],
+      "env": {
+        "SLIDEMUX_API_URL": "https://slidemux.com",
+        "SLIDEMUX_API_TOKEN": "${SLIDEMUX_API_TOKEN}"
+      }
+    }
+  }
+}
