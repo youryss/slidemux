@@ -22,7 +22,9 @@ describe("readSlidemuxApiConfig", () => {
     delete process.env.SLIDEMUX_API_TOKEN;
     process.env.SLIDEMUX_API_URL = "https://slidemux.com";
     expect(() => readSlidemuxApiConfig()).toThrow(MissingSlidemuxApiConfigError);
-    expect(() => readSlidemuxApiConfig()).toThrow(/SLIDEMUX_API_TOKEN/);
+    expect(() => readSlidemuxApiConfig()).toThrow(
+      "SLIDEMUX_API_TOKEN is not set. Sign in → Account → API tokens, then add the secret to the SlideMux MCP server env.",
+    );
   });
 
   it("throws a clear error when SLIDEMUX_API_URL is missing", () => {

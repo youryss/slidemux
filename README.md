@@ -4,7 +4,7 @@ Your Playwright tests become your always-current tutorial videos. Mark steps wit
 
 **No PAT:** sign in at [slidemux.com](https://slidemux.com), open a project, and let the agent drive the studio. WebMCP is already on the page — the logged-in tab is enough.
 
-**MCP / CI:** set `SLIDEMUX_API_TOKEN` to a PAT minted on the invite (operator) or from API tokens if you have that menu. Do not commit tokens to git.
+**MCP / CI:** Sign in → Account → API tokens → paste the secret as `SLIDEMUX_API_TOKEN`. The secret is shown once. Do not commit tokens to git.
 
 ## Agent / MCP
 
@@ -23,7 +23,7 @@ npm install -D @slidemux/playwright
 claude --plugin-dir ./node_modules/@slidemux/playwright
 ```
 
-Export `SLIDEMUX_API_TOKEN` in the environment before starting Claude Code. Cloud tools fail without it.
+Export `SLIDEMUX_API_TOKEN` (Sign in → Account → API tokens) in the environment before starting Claude Code. Cloud tools fail without it.
 
 Skill: `/slidemux:slidemux-video`
 
@@ -35,7 +35,7 @@ From the public GitHub repo (after it is pushed):
 
 ### Cursor plugin
 
-Copy this folder to `~/.cursor/plugins/local/slidemux` and reload the window to try it locally. Set `SLIDEMUX_API_TOKEN` under Plugins → Configure. Submit `https://github.com/youryss/slidemux` at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish) once that repo is public.
+Copy this folder to `~/.cursor/plugins/local/slidemux` and reload the window to try it locally. Paste your Account → API tokens secret as `SLIDEMUX_API_TOKEN` under Plugins → Configure. Submit `https://github.com/youryss/slidemux` at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish) once that repo is public.
 
 ### Cursor / Claude Desktop MCP JSON
 
@@ -58,7 +58,7 @@ Copy this folder to `~/.cursor/plugins/local/slidemux` and reload the window to 
 
 | Variable | Required for | Description |
 | --- | --- | --- |
-| `SLIDEMUX_API_TOKEN` | Cloud tools | Bearer PAT for SlideMux HTTP APIs |
+| `SLIDEMUX_API_TOKEN` | Cloud tools | Bearer PAT from Account → API tokens |
 | `SLIDEMUX_API_URL` | Cloud tools | SlideMux app origin (no trailing slash), e.g. `https://slidemux.com` |
 
 Local recording tools work with no token. Cloud tools fail with a clear error when either env var is missing.

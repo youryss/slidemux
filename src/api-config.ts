@@ -15,7 +15,7 @@ export function readSlidemuxApiConfig(): SlidemuxApiConfig {
   const token = process.env.SLIDEMUX_API_TOKEN?.trim();
   if (!token) {
     throw new MissingSlidemuxApiConfigError(
-      "SLIDEMUX_API_TOKEN is not set. Ask your operator for a personal access token and add it to the SlideMux MCP server env.",
+      "SLIDEMUX_API_TOKEN is not set. Sign in → Account → API tokens, then add the secret to the SlideMux MCP server env.",
     );
   }
   const apiUrl = process.env.SLIDEMUX_API_URL?.trim();

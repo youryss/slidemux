@@ -35,7 +35,7 @@ Copy this checklist and track progress:
   `page` fixture). See **Installed Electron apps** below, then continue from
   `record_test`.
 - The cloud MCP tools (upload, narration, voice, generate) need `SLIDEMUX_API_TOKEN`
-  in the MCP server env. If those tools error with auth, the token is missing — fall back to the signed-in site, or ask the operator for a PAT.
+  in the MCP server env. If those tools error with auth, the token is missing — fall back to the signed-in site, or Sign in → Account → API tokens and paste as `SLIDEMUX_API_TOKEN`.
 - If cloud tools return `fetch failed` while a local shell with the same token
   works, keep using the package APIs from the shell for upload/generate. The
   recording is fine; that MCP process cannot reach the API.
