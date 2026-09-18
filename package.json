@@ -4,8 +4,6 @@
   "description": "Your Playwright tests become your always-current tutorial videos.",
   "type": "module",
   "license": "MIT",
-  "homepage": "https://github.com/youryss/slidemux",
-  "repository": "https://github.com/youryss/slidemux",
   "publishConfig": {
     "access": "public",
     "provenance": true
@@ -51,5 +49,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.30.0"
-  }
+  },
+  "homepage": "https://github.com/youryss/slidemux",
+  "repository": "https://github.com/youryss/slidemux"
 }

@@ -27,7 +27,7 @@ Export `SLIDEMUX_API_TOKEN` in the environment before starting Claude Code. Clou
 
 Skill: `/slidemux:slidemux-video`
 
-From GitHub:
+From the public GitHub repo (after it is pushed):
 
 ```
 /plugin marketplace add youryss/slidemux
@@ -35,7 +35,7 @@ From GitHub:
 
 ### Cursor plugin
 
-Install **SlideMux** from the Cursor Marketplace, or copy this folder to `~/.cursor/plugins/local/slidemux` and reload the window. Set `SLIDEMUX_API_TOKEN` under Plugins → Configure.
+Copy this folder to `~/.cursor/plugins/local/slidemux` and reload the window to try it locally. Set `SLIDEMUX_API_TOKEN` under Plugins → Configure. Submit `https://github.com/youryss/slidemux` at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish) once that repo is public.
 
 ### Cursor / Claude Desktop MCP JSON
 
@@ -173,6 +173,11 @@ video duration with ffprobe and shifting marks by
 closing the app/context, as in the example above).
 
 ## Source and license
+
+Public plugin listing target: [github.com/youryss/slidemux](https://github.com/youryss/slidemux).
+Until that repo is the source of truth, this directory also lives in the
+SlideMux monorepo as `packages/slidemux-playwright/`. It has no imports outside
+this directory — a test (`src/package-boundary.test.ts`) enforces that.
 
 Develop locally with `npm install`, `npm run typecheck`, `npm test`, and
 `npm run build` (emits `dist/`).
