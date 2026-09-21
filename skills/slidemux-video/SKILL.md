@@ -13,6 +13,8 @@ The SlideMux MCP tools automate every mechanical step. Your job is the ordering
 and the one thing the tools can't do: **write the narration**. Follow the
 pipeline below; the pitfalls in each step are the reason this skill exists.
 
+**Never change the visible screen between `slidemux.step()` calls. Gaps are not discarded; they can inherit the previous narration.** Each step is one screen + one sentence. Load and settle _before_ the step starts. Put taps that reveal the next screen _inside_ that destination step (or after the destination is already stable).
+
 ## Pipeline
 
 Copy this checklist and track progress:
@@ -28,6 +30,7 @@ Copy this checklist and track progress:
 ```
 
 ### 1. Prereqs
+
 - Fastest path (no PAT): sign in at https://slidemux.com, open the project, and drive the studio in that tab. WebMCP is already registered on the page; the agent uses the logged-in session.
 - If the repo's Playwright config doesn't use `slidemux.step()` yet, run
   `setup_playwright` once.
@@ -45,6 +48,7 @@ Copy this checklist and track progress:
   rather than burning a regenerate.
 
 ### 2. Record
+
 - **Frame 16:9 or 9:16 only.** Landscape product tours are 1920×1080 or 1280×720;
   vertical/mobile is 1080×1920 or 720×1280. Any other aspect (tiny overlay
   windows, native window chrome, square captures) generates an ugly video —
@@ -66,15 +70,28 @@ Copy this checklist and track progress:
   `slidemuxReporter()` or `["@slidemux/playwright/reporter", { outputDir: "test-results/slidemux" }]`.
   Do not import `test` from `@slidemux/playwright` in the config file — the
   barrel re-exports `test()`, and config load throws the same "no suite" error.
+- Do not `page.goto` (or wait on a spinner) as the first work _inside_ a step —
+  the clip starts on blank, the previous slide, or a splash while speech starts.
+  Navigate, wait until the destination is visible, then open the step and hold.
+- Slow apps: keep a title overlay up until the real UI is ready; hide it at the
+  start of the destination step so a load gap is still the old slide, not a
+  splash.
+- Hide Playwright action highlighting, error toasts, and device chrome that
+  covers the product header. The recording should look like a user, not a test.
 
 ### 3. Read the bundle
+
 - Run `get_bundle_status`. Each test has `steps[]`; each step has a `slug`,
   `startMs`, `endMs`, and `file`. The `slug` is the narration key and the clip
   duration is `endMs - startMs`.
 - Probe one clip (`ffprobe -v error -select_streams v:0 -show_entries stream=width,height`)
   before upload. If it is not 16:9 or 9:16, stop and re-record.
+- Check gaps: `startMs[n+1] - endMs[n]`. Over ~300ms is a desync risk (loader,
+  splash, or the next screen glued onto the previous voiceover). Inspect first /
+  middle / last frame of each `step.mp4` before upload.
 
 ### 4. Upload
+
 - Run `upload_recording`. Capture the returned project id — every later step
   needs it as `projectId`.
 - Import **upserts** on test file + title. Re-uploading the same spec updates
@@ -83,14 +100,20 @@ Copy this checklist and track progress:
   against the previous one instead of assuming a new studio URL.
 
 ### 5. Narration (the value-add)
+
 For each step slug, call `set_slide_narration` with `{ projectId, slug, text }`.
 Write the copy yourself using these rules:
 
+- **Match the frame.** Write copy a silent viewer would accept as a caption for
+  **that** clip. Read the first frame (or the hold) before you write. A parallel
+  story that does not match the headline is a bug.
 - **Spoken, not UI labels.** Describe what's happening and why it matters, in
-  the voice of a guide. Never just read button text off the screen.
+  the voice of a guide. Echoing the on-screen H1 for one short clause is fine;
+  never just read button text off the screen.
 - **Fit the clip.** Budget ~2.3 spoken words per second of clip
-  (`endMs - startMs`). A 4s clip ~= 9 words; a 10s clip ~= 23 words. Most
-  slides are one short sentence. Overlong narration gets cut off or rushed.
+  (`endMs - startMs`) as a **ceiling**. A 4s clip ~= 9 words; a 10s clip ~= 23
+  words. Most slides are one short sentence. Overlong narration gets cut off,
+  rushed, or glued onto the next picture.
 - **Flow across slides.** Read them in order as one script — no repeated intros,
   each slide continues the last.
 - **First and last slide** carry the hook and the wrap/CTA; middle slides move
@@ -99,6 +122,7 @@ Write the copy yourself using these rules:
 See [narration-examples.md](narration-examples.md) for good vs bad copy.
 
 ### 6. Voice
+
 - `list_voices` returns ElevenLabs voices. Use each row's `id`, never the
   display name, and never a Google `Neural2` id (generate rejects it).
 - Pick a row that matches the narration language the user asked for
@@ -108,6 +132,7 @@ See [narration-examples.md](narration-examples.md) for good vs bad copy.
 - Persist it with `set_voice { projectId, voiceId }`.
 
 ### 7. Generate
+
 - `start_generate { projectId, voiceId }` returns a `jobId` immediately.
 - Poll `get_generate_status { projectId, jobId }` with backoff (e.g. 5s, then
   10s) until it reports complete. Jobs run one at a time on the hosted runner,
@@ -117,6 +142,15 @@ See [narration-examples.md](narration-examples.md) for good vs bad copy.
   where it is.
 - Each generate/regenerate consumes quota — don't loop generate to "retry"
   narration tweaks; fix narration first, then generate once.
+- After download, sample the muxed MP4 at each cut. If picture and caption
+  disagree, fix the spec and **re-record**, then generate once. Do not generate
+  again to “nudge” sync.
+
+| Symptom                                         | Action                                                      |
+| ----------------------------------------------- | ----------------------------------------------------------- |
+| Wrong screen, splash, notch, click overlay, gap | Re-record, then generate **once**                           |
+| Wrong words, too long, wrong voice              | `set_slide_narration` / `set_voice`, then generate **once** |
+| “Try another take” with no spec change          | Don’t                                                       |
 
 ## Installed Electron apps
 
@@ -136,7 +170,7 @@ the binary and attach video + `slidemux-steps` itself via
 - Overlay UIs record as a pill on black unless you lock the window to 16:9
   or 9:16 (`recordVideo.size` plus `BrowserWindow.setContentSize`, not `setSize`
   which includes chrome) and paint a desktop behind the UI (`pointer-events:
-  none` so clicks still hit the product). Re-lock size after UI that expands
+none` so clicks still hit the product). Re-lock size after UI that expands
   the window. Hide overflow so a scrollbar does not appear in the clip.
 - Some Electron inputs are `readonly` until focused — `click()` then
   `pressSequentially`, not `fill()`.

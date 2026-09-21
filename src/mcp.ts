@@ -30,7 +30,8 @@ const server = new McpServer(
       "When creating or redesigning tutorial slides, first read the slidemux-tutorial skill " +
       "(skill://slidemux/slidemux-tutorial/SKILL.md). To turn the approved source into a narrated " +
       "video, read the slidemux-video skill (skill://slidemux/slidemux-video/SKILL.md), then follow " +
-      "its record -> upload -> narrate -> generate pipeline.",
+      "its record -> upload -> narrate -> generate pipeline. Never change the visible screen " +
+      "between slidemux.step() calls — gaps can inherit the previous narration.",
   },
 );
 

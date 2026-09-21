@@ -19,3 +19,4 @@ Spoken guide copy, sized to the clip. The slug names the recorded step.
 | "In this comprehensive overview of the primary dashboard interface, you can observe the complete enumeration of all currently tracked projects along with..." | Way over the ~2.3 words/sec budget for the clip; gets cut off. |
 | "Welcome! Let me show you around." (on slide 4 of 7) | Intro copy on a middle slide; breaks the flow. |
 | "Click the blue Create button in the top right." | Narrates the mouse, not the value. |
+| "Saturday morning…" over a slide that says "The afternoon, already sorted." | Parallel script; voiceover must match the visible headline. |

@@ -16,7 +16,7 @@ Ask only for missing decisions:
 - Audience, desired outcome, language, duration, and final CTA
 - Brand assets or an existing visual reference
 
-Default to 16:9 for product tutorials and 9:16 for social media.
+Default to 16:9 for product tutorials and 9:16 for social media. If the user said “social,” “Shorts,” or “product tour” and skipped the rest, default portrait 9:16, 6–8 beats, and one CTA URL — then ask only for what is still missing.
 
 ## 2. Plan the story
 
@@ -29,7 +29,7 @@ Use 6–8 beats unless the requested duration needs fewer:
 5. Result: what changed
 6. CTA: one clear next step
 
-Each slide teaches one point. Prefer one short headline and visual evidence over paragraphs or bullet walls.
+Each slide teaches one point. Prefer one short headline and visual evidence over paragraphs or bullet walls. One `slidemux.step()` is one picture; do not pack two screens into one beat unless the voiceover names both states in that order.
 
 ## 3. Compose the source
 
@@ -57,11 +57,15 @@ Capture a screenshot in the target aspect ratio and inspect it. Revise until:
 - Platform safe areas are clear in portrait.
 - Brand, chapter, and progress chrome are consistent.
 - The slide still makes sense when viewed silently.
+- Device chrome (notch, status bar) sits in its own band, not on the app header.
+- No test overlays (Playwright “Click locator…”, LogBox, toasts).
 
-Do not use generation as a visual retry loop. Approve the screenshots first, then record once.
+A screenshot taken *after* the step hides a splash at `t=0`. After recording, also inspect the **first frame** of each step clip. After generate, sample the **muxed** MP4 at each cut — Playwright PNGs are not enough.
+
+Do not use generation as a visual retry loop. Approve the frames first, then record once. Wrong picture = re-record. Wrong words only = change narration, then generate once.
 
 ## 5. Record and narrate
 
-Use the `slidemux-video` skill for the record, upload, narration, voice, and generation pipeline. Keep most visual beats on screen for 3–7 seconds. Narration explains why the visible action matters; it does not read UI labels.
+Use the `slidemux-video` skill for the record, upload, narration, voice, and generation pipeline. Keep most visual beats on screen for 3–7 seconds. Narration explains why the visible action matters; it does not read UI labels. The voiceover must match the frame: if the headline says “afternoon,” do not say “Saturday morning.”
 
 Processing should validate aspect ratio, safe areas, overflow, text readability, narration fit, and pacing. It must not rearrange approved content or apply surprise AI styling.
