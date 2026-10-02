@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -44,8 +44,10 @@ describe("self-serve PAT copy", () => {
   it("points mint at Sign in → Account → API tokens and SLIDEMUX_API_TOKEN", () => {
     const readme = readFileSync(join(packageRoot, "README.md"), "utf8");
     const skill = readFileSync(join(packageRoot, "skills/slidemux-video/SKILL.md"), "utf8");
-    const codex = readFileSync(join(packageRoot, "CODEX.md"), "utf8");
-    for (const text of [readme, skill, codex]) {
+    // CODEX.md is monorepo-only; sync strips it from the public plugin repo.
+    const codexPath = join(packageRoot, "CODEX.md");
+    const texts = [readme, skill, ...(existsSync(codexPath) ? [readFileSync(codexPath, "utf8")] : [])];
+    for (const text of texts) {
       expect(text).toContain("Account → API tokens");
       expect(text).toContain("SLIDEMUX_API_TOKEN");
     }

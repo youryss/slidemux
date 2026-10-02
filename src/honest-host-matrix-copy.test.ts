@@ -1,21 +1,31 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
+const PACKAGE_PIN = "@slidemux/playwright@0.2.0";
+
+/** CODEX.md is monorepo-only; sync strips it from github.com/youryss/slidemux. */
+function readOptionalCodex(): string | null {
+  const path = join(packageRoot, "CODEX.md");
+  return existsSync(path) ? readFileSync(path, "utf8") : null;
+}
 
 describe("honest MCP host matrix copy", () => {
   it("does not sell WebMCP as Codex/Claude/Cursor no-token", () => {
     const readme = readFileSync(join(packageRoot, "README.md"), "utf8");
     const skill = readFileSync(join(packageRoot, "skills/slidemux-video/SKILL.md"), "utf8");
-    const codex = readFileSync(join(packageRoot, "CODEX.md"), "utf8");
-    for (const text of [readme, skill, codex]) {
+    const codex = readOptionalCodex();
+    for (const text of [readme, skill, ...(codex ? [codex] : [])]) {
       expect(text).not.toContain("WebMCP is already on the page");
       expect(text).not.toContain("WebMCP is already registered on the page");
     }
-    expect(codex).not.toContain("0.1.7");
-    expect(codex).toContain("@slidemux/playwright@0.2.0");
+    if (codex) {
+      expect(codex).not.toContain("0.1.7");
+      expect(codex).toContain(PACKAGE_PIN);
+    }
+    expect(readme).toContain(PACKAGE_PIN);
     expect(readme).toContain("create_tutorial");
     expect(readme).toContain("regenerate_after_ui_change");
     expect(readme).toContain("Path B");
