@@ -15,8 +15,11 @@ jobs:
           node-version: 22
           registry-url: https://registry.npmjs.org
           cache: npm
-      # Lockfile is generated on macOS; npm ci omits linux optional natives (typescript, rolldown).
       - run: npm install
+      - run: |
+          npm install --no-save \
+            "@typescript/typescript-linux-x64@$(node -p "require('typescript/package.json').version")" \
+            "@rolldown/binding-linux-x64-gnu@$(node -p "require('rolldown/package.json').version")"
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
