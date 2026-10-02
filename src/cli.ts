@@ -67,6 +67,6 @@ slidemux record [--file spec.ts] [--grep title]
 slidemux status
 slidemux publish [--voice elevenlabsVoiceId] [--out dir]   # upload -> generate -> poll -> download (needs SLIDEMUX_API_TOKEN, SLIDEMUX_API_URL)
 
-MCP: npx -y -p @slidemux/playwright slidemux-mcp
+MCP: npx -y -p @slidemux/playwright@0.2.0 slidemux-mcp
 `);
 }

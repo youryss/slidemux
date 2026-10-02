@@ -4,10 +4,12 @@ import { readSlidemuxApiConfig, type SlidemuxApiConfig } from "./api-config.js";
 import { readBundleStatus } from "./commands.js";
 import { buildImportManifest, buildImportMultipart } from "./build-import-body.js";
 import { resolveContained } from "./contained-path.js";
+import type { NarrationSlideKeys } from "./mcp-narration-slide-target.js";
+import { resolveNarrationSlide } from "./mcp-narration-slide-target.js";
 
 export type FetchFn = typeof fetch;
 
-type ApiJson = Record<string, unknown>;
+export type ApiJson = Record<string, unknown>;
 
 /** Thrown for non-2xx SlideMux responses; `code` carries the server error code (e.g. VIDEO_METER_EXHAUSTED). */
 export class SlidemuxApiError extends Error {
@@ -54,7 +56,8 @@ async function apiFetch(
   return response;
 }
 
-async function apiRequest(
+/** Authenticated JSON request against the SlideMux API. Example: `await apiRequest(config, fetch, "/api/projects/p1")` */
+export async function apiRequest(
   config: SlidemuxApiConfig,
   fetchFn: FetchFn,
   pathname: string,
@@ -88,6 +91,278 @@ export async function downloadVideo(
   await mkdir(path.dirname(target), { recursive: true });
   await writeFile(target, bytes);
   return { path: target, bytes: bytes.byteLength };
+}
+
+export type TopicDeckBrandBody = {
+  accent: string;
+  ink: string;
+  ground: string;
+  logo?: { filename: string; base64: string };
+};
+
+/** Creates an empty topic deck via POST /api/topic-decks. */
+export async function createTopicDeck(
+  title: string,
+  orientation: "landscape" | "portrait",
+  theme: string,
+  fetchFn: FetchFn = fetch,
+  brand?: TopicDeckBrandBody,
+  themeOverride?: Record<string, unknown>,
+): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return apiRequest(config, fetchFn, "/api/topic-decks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title,
+      orientation,
+      theme,
+      ...(brand ? { brand } : {}),
+      ...(themeOverride ? { themeOverride } : {}),
+    }),
+  });
+}
+
+/** Reads a project via GET /api/projects/:id. */
+export async function getProject(projectId: string, fetchFn: FetchFn = fetch): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return apiRequest(config, fetchFn, `/api/projects/${projectId}`);
+}
+
+/** Appends a blank slide via POST /api/projects/:id/scenes. */
+export async function appendSlide(projectId: string, fetchFn: FetchFn = fetch): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return apiRequest(config, fetchFn, `/api/projects/${projectId}/scenes`, { method: "POST" });
+}
+
+/** Deletes one slide via DELETE /api/projects/:id/scenes/:slideId. */
+export async function deleteSlide(
+  projectId: string,
+  slideId: string,
+  fetchFn: FetchFn = fetch,
+): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return apiRequest(config, fetchFn, `/api/projects/${projectId}/scenes/${slideId}`, {
+    method: "DELETE",
+  });
+}
+
+export type TextBoxInput = Record<string, unknown>;
+
+/** Adds a text box via POST /api/projects/:id/scenes/:slideId/text-boxes. */
+export async function addTextBox(
+  projectId: string,
+  slideId: string,
+  fields: TextBoxInput,
+  fetchFn: FetchFn = fetch,
+): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return apiRequest(config, fetchFn, `/api/projects/${projectId}/scenes/${slideId}/text-boxes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(fields),
+  });
+}
+
+/** Patches a text box via PATCH /api/projects/:id/scenes/:slideId/text-boxes/:boxId. */
+export async function patchTextBox(
+  projectId: string,
+  slideId: string,
+  boxId: string,
+  patch: TextBoxInput,
+  fetchFn: FetchFn = fetch,
+): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return apiRequest(
+    config,
+    fetchFn,
+    `/api/projects/${projectId}/scenes/${slideId}/text-boxes/${boxId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    },
+  );
+}
+
+/** Deletes a text box via DELETE /api/projects/:id/scenes/:slideId/text-boxes/:boxId. */
+export async function deleteTextBox(
+  projectId: string,
+  slideId: string,
+  boxId: string,
+  fetchFn: FetchFn = fetch,
+): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return apiRequest(
+    config,
+    fetchFn,
+    `/api/projects/${projectId}/scenes/${slideId}/text-boxes/${boxId}`,
+    { method: "DELETE" },
+  );
+}
+
+export type LayerBoxRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type LayerBoxUpload = LayerBoxRect & {
+  filename: string;
+  base64?: string;
+  /** Stdio-only: read bytes from disk instead of stuffing base64 through the tool call. */
+  filePath?: string;
+};
+
+function layerBoxQuery(rect: LayerBoxRect): string {
+  const params = new URLSearchParams({
+    x: String(rect.x),
+    y: String(rect.y),
+    width: String(rect.width),
+    height: String(rect.height),
+  });
+  return params.toString();
+}
+
+/** Upload bytes from a local filePath or base64. Example: `await layerBoxBytes({ filename: "a.png", filePath, x: 0, y: 0, width: 1, height: 1 })` */
+export async function layerBoxBytes(upload: LayerBoxUpload): Promise<Buffer> {
+  if (upload.filePath && upload.base64) {
+    throw new Error(
+      `upload must use filePath or base64, not both; got filename ${JSON.stringify(upload.filename)}`,
+    );
+  }
+  if (upload.filePath) {
+    return readFile(upload.filePath);
+  }
+  if (upload.base64) {
+    return Buffer.from(upload.base64, "base64");
+  }
+  throw new Error(`upload needs filePath or base64; got filename ${JSON.stringify(upload.filename)}`);
+}
+
+async function uploadLayerBox(
+  pathname: string,
+  upload: LayerBoxUpload,
+  config: SlidemuxApiConfig,
+  fetchFn: FetchFn,
+): Promise<ApiJson> {
+  const bytes = await layerBoxBytes(upload);
+  const response = await apiFetch(config, fetchFn, `${pathname}?${layerBoxQuery(upload)}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/octet-stream",
+      "X-Asset-Filename": upload.filename,
+    },
+    body: new Uint8Array(bytes),
+  });
+  return (await response.json()) as ApiJson;
+}
+
+/** Adds an image box from local filePath or base64 bytes. */
+export async function addImageBox(
+  projectId: string,
+  slideId: string,
+  upload: LayerBoxUpload,
+  fetchFn: FetchFn = fetch,
+): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return uploadLayerBox(
+    `/api/projects/${projectId}/scenes/${slideId}/image-boxes`,
+    upload,
+    config,
+    fetchFn,
+  );
+}
+
+/** Patches an image box. */
+export async function patchImageBox(
+  projectId: string,
+  slideId: string,
+  boxId: string,
+  patch: Record<string, unknown>,
+  fetchFn: FetchFn = fetch,
+): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return apiRequest(
+    config,
+    fetchFn,
+    `/api/projects/${projectId}/scenes/${slideId}/image-boxes/${boxId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    },
+  );
+}
+
+/** Deletes an image box. */
+export async function deleteImageBox(
+  projectId: string,
+  slideId: string,
+  boxId: string,
+  fetchFn: FetchFn = fetch,
+): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return apiRequest(
+    config,
+    fetchFn,
+    `/api/projects/${projectId}/scenes/${slideId}/image-boxes/${boxId}`,
+    { method: "DELETE" },
+  );
+}
+
+/** Adds a video box from local filePath or base64 bytes. */
+export async function addVideoBox(
+  projectId: string,
+  slideId: string,
+  upload: LayerBoxUpload,
+  fetchFn: FetchFn = fetch,
+): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return uploadLayerBox(
+    `/api/projects/${projectId}/scenes/${slideId}/video-boxes`,
+    upload,
+    config,
+    fetchFn,
+  );
+}
+
+/** Patches a video box. */
+export async function patchVideoBox(
+  projectId: string,
+  slideId: string,
+  boxId: string,
+  patch: Record<string, unknown>,
+  fetchFn: FetchFn = fetch,
+): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return apiRequest(
+    config,
+    fetchFn,
+    `/api/projects/${projectId}/scenes/${slideId}/video-boxes/${boxId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    },
+  );
+}
+
+/** Deletes a video box. */
+export async function deleteVideoBox(
+  projectId: string,
+  slideId: string,
+  boxId: string,
+  fetchFn: FetchFn = fetch,
+): Promise<ApiJson> {
+  const config = readSlidemuxApiConfig();
+  return apiRequest(
+    config,
+    fetchFn,
+    `/api/projects/${projectId}/scenes/${slideId}/video-boxes/${boxId}`,
+    { method: "DELETE" },
+  );
 }
 
 /** Lists ElevenLabs TTS voices from GET /api/tts/voices?provider=elevenlabs. */
@@ -142,27 +417,30 @@ export async function setVoice(
 }
 
 type ProjectSlide = {
+  id: string;
   narration: string;
   layers?: Array<{ id?: string; type?: string }>;
 };
 
-/** Updates one slide's narration by Playwright step slug. */
+function narrationKeys(slugOrKeys: string | NarrationSlideKeys): NarrationSlideKeys {
+  return typeof slugOrKeys === "string" ? { slug: slugOrKeys } : slugOrKeys;
+}
+
+/** Updates one slide's narration by slideId and/or Playwright step slug. */
 export async function setSlideNarration(
   projectId: string,
-  slug: string,
+  slugOrKeys: string | NarrationSlideKeys,
   text: string,
   fetchFn: FetchFn = fetch,
 ): Promise<ApiJson> {
   const config = readSlidemuxApiConfig();
   const loaded = await apiRequest(config, fetchFn, `/api/projects/${projectId}`);
   const project = loaded.project as { slides: ProjectSlide[] };
-  const slide = project.slides.find((item) =>
-    item.layers?.some((layer) => layer.type === "video" && layer.id === slug),
-  );
-  if (!slide) {
-    throw new Error(`No slide with step slug ${JSON.stringify(slug)} in project ${JSON.stringify(projectId)}`);
+  const resolved = resolveNarrationSlide(project.slides, narrationKeys(slugOrKeys));
+  if (!resolved.ok) {
+    throw new Error(`${resolved.message} in project ${JSON.stringify(projectId)}`);
   }
-  slide.narration = text;
+  resolved.slide.narration = text;
   return apiRequest(config, fetchFn, `/api/projects/${projectId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },

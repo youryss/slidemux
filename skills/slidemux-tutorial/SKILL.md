@@ -1,11 +1,24 @@
 ---
 name: slidemux-tutorial
-description: Plan and author polished tutorial or presentation source before recording it with SlideMux.
+description: >-
+  Plan and author polished how-to tutorials as studio decks. Use when the user
+  asks to create a tutorial showing how to do something.
 ---
 
 # SlideMux tutorial authoring
 
-Read this before creating or redesigning tutorial slides. This skill guides authoring; video generation must reproduce the approved source rather than invent a new layout.
+Read this when the user asks to **create a tutorial** — e.g. "Create a tutorial
+showing how to create a customer case." This skill guides **authored slides**
+built with topic-deck MCP tools, not Playwright recording.
+
+After the brief is known, read **slidemux-design**
+(`skill://slidemux/slidemux-design/SKILL.md`) for recipe choice and layout.
+Then read **slidemux-workflow**
+(`skill://slidemux/slidemux-workflow/SKILL.md`) for the interactive
+plan → draft → review → steer → approve → generate loop.
+
+For **filmed app tours** (live product UI in clips), read **slidemux-video**
+instead and follow record → upload → narrate → generate.
 
 ## 1. Establish the brief
 
@@ -16,7 +29,10 @@ Ask only for missing decisions:
 - Audience, desired outcome, language, duration, and final CTA
 - Brand assets or an existing visual reference
 
-Default to 16:9 for product tutorials and 9:16 for social media. If the user said “social,” “Shorts,” or “product tour” and skipped the rest, default portrait 9:16, 6–8 beats, and one CTA URL — then ask only for what is still missing.
+Default to 16:9 for product tutorials and 9:16 for social media. If the user
+said "social," "Shorts," or "product tour" and skipped the rest, default
+portrait 9:16, 6–8 beats, and one CTA URL — then ask only for what is still
+missing.
 
 ## 2. Plan the story
 
@@ -29,43 +45,61 @@ Use 6–8 beats unless the requested duration needs fewer:
 5. Result: what changed
 6. CTA: one clear next step
 
-Each slide teaches one point. Prefer one short headline and visual evidence over paragraphs or bullet walls. One `slidemux.step()` is one picture; do not pack two screens into one beat unless the voiceover names both states in that order.
+Each slide teaches one point. Prefer one short headline and visual evidence over
+paragraphs or bullet walls.
+
+The workflow skill shows this plan to the user before building (or in the same
+turn as the first draft when the brief is complete).
 
 ## 3. Compose the source
 
-Choose the simplest fitting layout:
+Choose the simplest fitting **recipe** (see **slidemux-design** §3 for the
+full set — these ids go straight into the `recipe` field):
 
 - `title`: kicker, headline, optional supporting line
-- `split-product`: explanation beside framed product evidence
-- `full-product`: product recording with a small contextual caption
-- `choice-list`: two to four choices with one active state
-- `cta`: outcome recap and one next action
+- `agenda` / `steps`: what the viewer will do, as numbered rows or cards
+- `screenshot`: one step over a big framed screenshot, kicker "Step N"
+- `split`: explanation beside framed product evidence
+- `comparison`: before/after; `choice`: two to four options
+- `checklist`: prerequisites or recap
+- `close`: outcome recap and one next action
 
-Keep a consistent logo, chapter label, and `current / total` progress treatment. Reuse the product's existing type and colors when available. Do not invent a new visual language on every slide.
+Pick one deck `theme` when you create the deck (`studio` for product and SaaS,
+`terminal` for developer tools) so every slide shares one composition.
+`theme` is required. A named look with no hexes snaps to the closest theme;
+say that id in the plan. For a product site, also pass `brand` (accent, ink,
+ground, and the logo URL) so the deck uses that product's colors. The server
+paints the logo; do not add an image box for it. Keep step kickers
+consistent ("Step 1", "Step 2", …).
 
-For 9:16, stack content vertically, keep the primary message in the center safe area, and leave generous space at the top and bottom for social-platform controls. Never crop the product's important state to force a landscape layout into portrait.
+**Screenshots:** a tutorial without pictures reads as a text deck. Ask the
+user for screenshots (hosted: public https image URLs; stdio: local files)
+before drafting. If they will send them later, draft `screenshot` slides
+without `upload` — the server paints a placeholder and `lint_deck` flags it —
+then `replace_slide_from_recipe` with the real picture. Do not generate a
+tutorial that still shows placeholders.
 
-## 4. Review before recording
+For 9:16, stack content vertically, keep the primary message in the center safe
+area, and leave generous space at the top and bottom for social-platform controls.
 
-Capture a screenshot in the target aspect ratio and inspect it. Revise until:
+Build slides with topic-deck tools: `create_deck_from_plan` on hosted MCP (or
+`create_topic_deck` + `append_slide_from_recipe` with inline `narration` on
+stdio), and `replace_slide_from_recipe` to fix a slide in place. See **slidemux-topic**
+for beat craft (headline ≤8 words, narration <300 chars) and **slidemux-design**
+for layout rects, type scale, and the two patching rules (0–1 rects;
+landscape-canonical `fontSizePx`; portrait titles 160 not 48).
 
-- The canvas is exactly 16:9 or 9:16.
-- The headline is readable at phone size.
-- No text, controls, or product evidence overflows or is clipped.
-- Contrast is sufficient and the active state is not color-only.
-- There are no more than two columns in landscape; portrait is normally stacked.
-- Platform safe areas are clear in portrait.
-- Brand, chapter, and progress chrome are consistent.
-- The slide still makes sense when viewed silently.
-- Device chrome (notch, status bar) sits in its own band, not on the app header.
-- No test overlays (Playwright “Click locator…”, LogBox, toasts).
+## 4. Review loop
 
-A screenshot taken *after* the step hides a splash at `t=0`. After recording, also inspect the **first frame** of each step clip. After generate, sample the **muxed** MP4 at each cut — Playwright PNGs are not enough.
+The **slidemux-workflow** skill owns review, steering, critique, and generate.
+Do not call `start_generate` until the user explicitly approves the draft.
 
-Do not use generation as a visual retry loop. Approve the frames first, then record once. Wrong picture = re-record. Wrong words only = change narration, then generate once.
+When steering, the user speaks in natural language — never require MCP tool names.
 
-## 5. Record and narrate
+## 5. Path B — filmed walkthrough (not a theme)
 
-Use the `slidemux-video` skill for the record, upload, narration, voice, and generation pipeline. Keep most visual beats on screen for 3–7 seconds. Narration explains why the visible action matters; it does not read UI labels. The voiceover must match the frame: if the headline says “afternoon,” do not say “Saturday morning.”
-
-Processing should validate aspect ratio, safe areas, overflow, text readability, narration fit, and pacing. It must not rearrange approved content or apply surprise AI styling.
+When the user wants a **live filmed walkthrough** of a running app (not authored
+slides), that is Path B: invent a one-off stage, then **slidemux-video** —
+record → upload → narrate → generate. Sync: open `slidemux.step()` → play the
+entrance → settle → hold to the line. No section pills, owl chrome, or site pills.
+Themes stay Maya/deck costume for authored PPTX decks.

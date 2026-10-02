@@ -16,7 +16,11 @@ jobs:
           registry-url: https://registry.npmjs.org
           cache: npm
       - run: npm ci
+      # TypeScript 7 ships a platform native; macOS lockfiles omit linux-x64.
+      - run: npm install --no-save "@typescript/typescript-linux-x64@$(node -p "require('typescript/package.json').version")"
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
       - run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

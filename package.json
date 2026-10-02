@@ -1,11 +1,12 @@
 {
   "name": "@slidemux/playwright",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "Your Playwright tests become your always-current tutorial videos.",
   "type": "module",
   "license": "MIT",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "bin": {
     "slidemux": "./dist/cli.js",

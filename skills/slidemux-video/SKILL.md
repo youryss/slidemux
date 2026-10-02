@@ -13,7 +13,28 @@ The SlideMux MCP tools automate every mechanical step. Your job is the ordering
 and the one thing the tools can't do: **write the narration**. Follow the
 pipeline below; the pitfalls in each step are the reason this skill exists.
 
-**Never change the visible screen between `slidemux.step()` calls. Gaps are not discarded; they can inherit the previous narration.** Each step is one screen + one sentence. Load and settle _before_ the step starts. Put taps that reveal the next screen _inside_ that destination step (or after the destination is already stable).
+This is **Path B**: invent a one-off stage (not a theme or recipe), record it, then
+`upload_recording` → narrate → generate. Themes are Maya/deck costume only.
+No section pills, owl chrome, or site pills on the film.
+
+**Sync rule (Muxxy):** mount the stage paused → open `slidemux.step()` → play
+the entrance inside the step → settle → hold to the narration words. Do not
+start the clip mid-animation. Do not hold dead air before the entrance or after
+the line is done.
+
+**Never change the visible screen between `slidemux.step()` calls. Gaps are not discarded; they can inherit the previous narration.** Each step is one screen + one sentence. Load and mount paused _before_ the step starts; play the entrance _inside_ the step. Put taps that reveal the next screen _inside_ that destination step (or after the destination is already stable).
+
+**Shared beat list (Path A and Path B):** one `{ slug, narration, holdMs }` array is the story script. Path B `slidemux.step(slug)` and the post-entrance hold must match that list. Path A `ingest_html_stills` accepts the same shape (settled still ≡ this hold frame). Regenerating or swapping A↔B reuses narration + holdMs on unchanged slugs — do not rewrite the script when only the intake changes.
+
+```json
+[
+  { "slug": "open-invite", "narration": "Open the invite dialog.", "holdMs": 4000 }
+]
+```
+
+`slug` is kebab-case and unique. `holdMs` is the settled hold after the entrance (integer ms). Missing fields or bad timing fail with an indexed error (`beats[1].holdMs must be …`).
+
+**Path A (cloud, no local MP4):** call hosted `ingest_html_stills` with that beat list, one HTML page per slug, and assets. SlideMux captures the **settled post-entrance** still per beat (not mid-anim, not theme stage HTML) and the same generate/mux. Fonts and assets must be **inline or uploaded**. **No silent remote fetch** (`https://`, protocol-relative, or `@import` of a host is rejected). Then `set_voice` → `start_generate` as below.
 
 ## Pipeline
 
@@ -31,7 +52,7 @@ Copy this checklist and track progress:
 
 ### 1. Prereqs
 
-- Fastest path (no PAT): sign in at https://slidemux.com, open the project, and drive the studio in that tab. WebMCP is already registered on the page; the agent uses the logged-in session.
+- Stdio MCP (Codex, Claude, Cursor): cloud tools need `SLIDEMUX_API_TOKEN`. Local recording does not. WebMCP is native `document.modelContext` on an open `/projects/:id` studio only; missing API is a silent no-op. Do not treat WebMCP as those hosts’ no-token path.
 - If the repo's Playwright config doesn't use `slidemux.step()` yet, run
   `setup_playwright` once.
 - **Electron / custom runtimes:** skip `setup_playwright` (it needs Playwright's
@@ -72,7 +93,9 @@ Copy this checklist and track progress:
   barrel re-exports `test()`, and config load throws the same "no suite" error.
 - Do not `page.goto` (or wait on a spinner) as the first work _inside_ a step —
   the clip starts on blank, the previous slide, or a splash while speech starts.
-  Navigate, wait until the destination is visible, then open the step and hold.
+  Navigate, mount the destination paused, then open the step, play the entrance,
+  settle, and hold to the line. Starting mid-animation or holding a still that
+  never moves is a sync bug.
 - Slow apps: keep a title overlay up until the real UI is ready; hide it at the
   start of the destination step so a load gap is still the old slide, not a
   splash.
@@ -101,7 +124,7 @@ Copy this checklist and track progress:
 
 ### 5. Narration (the value-add)
 
-For each step slug, call `set_slide_narration` with `{ projectId, slug, text }`.
+For each step, call `set_slide_narration` with `{ projectId, slug, text }` (or `slideId` instead of `slug`).
 Write the copy yourself using these rules:
 
 - **Match the frame.** Write copy a silent viewer would accept as a caption for
@@ -137,6 +160,9 @@ See [narration-examples.md](narration-examples.md) for good vs bad copy.
 - Poll `get_generate_status { projectId, jobId }` with backoff (e.g. 5s, then
   10s) until it reports complete. Jobs run one at a time on the hosted runner,
   so a queued job can take a few minutes before it starts.
+- When the job is terminal, MCP also adds resource
+  `slidemux://generate/jobs/{jobId}` and sends `notifications/resources/list_changed`.
+  Keep polling if the host does not handle that signal.
 - Then `download_video { projectId }` saves the MP4 next to the bundle
   (`test-results/slidemux/<projectId>.mp4`) and returns the path; tell the user
   where it is.

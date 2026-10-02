@@ -7,7 +7,7 @@
     {
       "name": "slidemux",
       "source": "./",
-      "version": "0.1.7",
+      "version": "0.2.0",
       "description": "Your Playwright tests become your always-current tutorial videos."
     }
   ]

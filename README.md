@@ -1,17 +1,41 @@
 # @slidemux/playwright
 
-Your Playwright tests become your always-current tutorial videos. Mark steps with `slidemux.step()`, record them as a local clip bundle (`test-results/slidemux/`), then upload, narrate, and generate a video on [SlideMux](https://slidemux.com/agents) from an agent (MCP), the CLI, or CI.
+**Path B** is the walkthrough door: invent a one-off stage for the product, film it with Playwright, then `upload_recording` → narrate → generate on [SlideMux](https://slidemux.com/agents). Same convert loop as today — no second film pipeline.
 
-**No PAT:** sign in at [slidemux.com](https://slidemux.com), open a project, and let the agent drive the studio. WebMCP is already on the page — the logged-in tab is enough.
+Sync rule: mount the stage paused → open `slidemux.step()` → play the entrance → settle → hold to the narration. Do not start mid-animation. Do not hold dead air. Never change the visible screen between steps.
 
-**MCP / CI:** Sign in → Account → API tokens → paste the secret as `SLIDEMUX_API_TOKEN`. The secret is shown once. Do not commit tokens to git.
+Shared beat list (Path A and Path B): `{ slug, narration, holdMs }` is the story script. Path B steps and holds must match it; Path A ingest will accept the same shape. Regenerating or swapping A↔B reuses narration + holdMs on unchanged slugs.
+
+Themes are **Maya/deck costume only** (PPTX → snap). Do not wrap film in section pills, owl chrome, site pills, or `stage-html-template`.
+
+Mark steps with `slidemux.step()`, record them as a local clip bundle (`test-results/slidemux/`), then upload, narrate, and generate from an agent (MCP), the CLI, or CI. One-off stage example (monorepo): [`examples/prd-66-hero-carousel`](../../examples/prd-66-hero-carousel).
+
+**Stdio (CI, Claude Desktop):** Sign in → Account → API tokens → `SLIDEMUX_API_TOKEN`. Local recording needs no token. Cloud upload/generate on stdio does.
+
+**Remote HTTP (Cursor, Codex, Cloud Agents):** Streamable HTTP `https://slidemux.com/mcp` + OAuth (`codex mcp login`). Do not paste a PAT into those hosts. Record still runs on your machine (stdio / Playwright).
+
+**WebMCP:** native `document.modelContext` on an open `/projects/:id` studio only. Missing API is a silent no-op. Not those hosts’ default install.
 
 ## Agent / MCP
 
-One copy-paste for Codex after `npm install -D @slidemux/playwright` and exporting the token:
+### Streamable HTTP + OAuth
+
+```json
+{
+  "mcpServers": {
+    "slidemux": {
+      "url": "https://slidemux.com/mcp"
+    }
+  }
+}
+```
+
+Then complete the host login (`codex mcp login` or equivalent). Cloud tools use your Google invite user. Local Playwright record stays stdio.
+
+One copy-paste for Codex **stdio** after `npm install -D @slidemux/playwright@0.2.0` (CI / PAT):
 
 ```bash
-codex mcp add slidemux --env SLIDEMUX_API_URL=https://slidemux.com --env SLIDEMUX_API_TOKEN=$SLIDEMUX_API_TOKEN -- npx -y -p @slidemux/playwright slidemux-mcp
+codex mcp add slidemux --env SLIDEMUX_API_URL=https://slidemux.com --env SLIDEMUX_API_TOKEN=$SLIDEMUX_API_TOKEN -- npx -y -p @slidemux/playwright@0.2.0 slidemux-mcp
 ```
 
 ### Claude Code plugin
@@ -19,13 +43,13 @@ codex mcp add slidemux --env SLIDEMUX_API_URL=https://slidemux.com --env SLIDEMU
 This package is a Claude Code plugin (skill + MCP). Install from npm:
 
 ```bash
-npm install -D @slidemux/playwright
+npm install -D @slidemux/playwright@0.2.0
 claude --plugin-dir ./node_modules/@slidemux/playwright
 ```
 
 Export `SLIDEMUX_API_TOKEN` (Sign in → Account → API tokens) in the environment before starting Claude Code. Cloud tools fail without it.
 
-Skill: `/slidemux:slidemux-video`
+Skills: `/slidemux:slidemux-video` (Playwright tutorials), `/slidemux:slidemux-tutorial` (authored how-to decks), `/slidemux:slidemux-topic` (presentations about a subject), `/slidemux:slidemux-design` (one-off stage composition patterns, brand tokens, sync — not a theme; recipes for Maya decks), `/slidemux:slidemux-workflow` (review loop)
 
 From the public GitHub repo (after it is pushed):
 
@@ -35,7 +59,7 @@ From the public GitHub repo (after it is pushed):
 
 ### Cursor plugin
 
-Copy this folder to `~/.cursor/plugins/local/slidemux` and reload the window to try it locally. Paste your Account → API tokens secret as `SLIDEMUX_API_TOKEN` under Plugins → Configure. Submit `https://github.com/youryss/slidemux` at [cursor.com/marketplace/publish](https://cursor.com/marketplace/publish) once that repo is public.
+Copy this folder to `~/.cursor/plugins/local/slidemux` (or `git clone` the repo there) and reload the window. Paste your Account → API tokens secret as `SLIDEMUX_API_TOKEN` under Plugins → Configure. This is a local plugin, not a Cursor Marketplace listing.
 
 ### Cursor / Claude Desktop MCP JSON
 
@@ -44,7 +68,7 @@ Copy this folder to `~/.cursor/plugins/local/slidemux` and reload the window to 
   "mcpServers": {
     "slidemux": {
       "command": "npx",
-      "args": ["-y", "-p", "@slidemux/playwright@0.1.7", "slidemux-mcp"],
+      "args": ["-y", "-p", "@slidemux/playwright@0.2.0", "slidemux-mcp"],
       "env": {
         "SLIDEMUX_API_URL": "https://slidemux.com",
         "SLIDEMUX_API_TOKEN": "pat_…"
@@ -80,22 +104,42 @@ Local recording tools work with no token. Cloud tools fail with a clear error wh
 | `upload_recording` | `POST /api/playwright-imports` — last local bundle |
 | `list_voices` | `GET /api/tts/voices?provider=elevenlabs` |
 | `get_entitlements` | `GET /api/auth/entitlements` (optional `projectId`) |
-| `set_slide_narration` | `PUT /api/projects/:id` — one slide by step slug |
+| `set_slide_narration` | `PUT /api/projects/:id` — one slide by `slug` and/or `slideId` |
 | `set_voice` | `PUT /api/projects/:id` — persist `voiceId` |
 | `start_generate` | `POST /api/projects/:id/generate` with `provider=elevenlabs` — returns `jobId` immediately |
 | `get_generate_status` | `GET /api/projects/:id/generate/:jobId` |
 | `download_video` | `GET /api/projects/:id/output/video.mp4` — saves `test-results/slidemux/<projectId>.mp4` (or `outPath`), returns path + bytes; fails if there is no completed output, never starts a generate |
 
-Not in this catalog: `set_captions`, `list_projects`, `delete_project`, `login`.
+**Topic deck (PAT required; stdio + hosted HTTP only)**
+
+| Tool | HTTP route |
+| --- | --- |
+| `create_topic_deck` | `POST /api/topic-decks` — empty project with title, orientation, and a required theme id |
+| `get_project` | `GET /api/projects/:id` — slide ids, boxes, narration, voiceId |
+| `append_slide` | `POST /api/projects/:id/scenes` |
+| `delete_slide` | `DELETE /api/projects/:id/scenes/:slideId` |
+| `add_text_box` | `POST /api/projects/:id/scenes/:slideId/text-boxes` |
+| `patch_text_box` | `PATCH /api/projects/:id/scenes/:slideId/text-boxes/:boxId` |
+| `delete_text_box` | `DELETE /api/projects/:id/scenes/:slideId/text-boxes/:boxId` |
+| `add_image_box` | `POST /api/projects/:id/scenes/:slideId/image-boxes` — stdio: `filePath` (preferred); hosted: `imageUrl` (https); tiny base64 PNG/JPEG/WebP/GIF last resort + rect |
+| `patch_image_box` | `PATCH /api/projects/:id/scenes/:slideId/image-boxes/:boxId` |
+| `delete_image_box` | `DELETE /api/projects/:id/scenes/:slideId/image-boxes/:boxId` |
+| `add_video_box` | `POST /api/projects/:id/scenes/:slideId/video-boxes` — stdio: `filePath` (preferred); hosted: `videoUrl` (https); tiny base64 MP4/WebM last resort + rect (one per slide) |
+| `patch_video_box` | `PATCH /api/projects/:id/scenes/:slideId/video-boxes/:boxId` |
+| `delete_video_box` | `DELETE /api/projects/:id/scenes/:slideId/video-boxes/:boxId` |
+
+Not in this catalog: `set_captions`, `list_projects`, `delete_project`, `login`, prompt-to-pixels, white-sheet writes, reorder, clip duration.
 
 Typical convert loop: `record_test` → `get_bundle_status` → `upload_recording` → `list_voices` → `set_voice` → optional `set_slide_narration` → `get_entitlements` → `start_generate` → poll `get_generate_status` → `download_video`.
 
-Known ceiling: the hosted runner generates one video at a time. If another job is running, yours queues behind it; a 6-step tutorial typically takes a couple of minutes once it starts.
+**Prompts (stdio only):** `create_tutorial`, `create_topic_presentation`, and `regenerate_after_ui_change`. They tell the model to read the skill resources, then run the matching loop. Not registered on WebMCP.
+
+Known ceiling: the hosted runner generates one video at a time. If another job is running, yours queues behind it; a 6-step tutorial typically takes a couple of minutes once it starts. MCP still offers `get_generate_status` polling; hosts that handle resource `list_changed` also see `slidemux://generate/jobs/{jobId}` when the job is terminal.
 
 ## Human CLI
 
 ```bash
-npm install -D @slidemux/playwright
+npm install -D @slidemux/playwright@0.2.0
 npx slidemux setup
 npx slidemux record --file e2e/invite.spec.ts
 npx slidemux status

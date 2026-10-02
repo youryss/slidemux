@@ -51,7 +51,9 @@ describe("plugin manifests", () => {
     expect(readme).toContain(npmSpec);
     expect(readme).toContain("https://slidemux.com/agents");
     expect(readme).not.toContain("https://slidemux.com/playwright");
-    expect(readme.match(/@slidemux\/playwright@\d+\.\d+\.\d+/g)).toEqual([npmSpec]);
+    const pins = readme.match(/@slidemux\/playwright@\d+\.\d+\.\d+/g) ?? [];
+    expect(pins.length).toBeGreaterThan(0);
+    expect(new Set(pins)).toEqual(new Set([npmSpec]));
   });
 
   it("lists this directory as the Claude marketplace plugin root", () => {
